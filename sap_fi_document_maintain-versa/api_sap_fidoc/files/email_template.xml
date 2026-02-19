@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns1:Mail xmlns:ns1="http://sap.com/xi/XI/Mail/30">
+   <Subject>%subject%</Subject>
+   <From>donotreply@schawk.com</From>
+   <To>%toEmail%</To>
+   <Content_Type>text/html</Content_Type>
+   <Content>
+   <![CDATA[
+       %htmlContent%
+   ]]>
+   </Content>
+</ns1:Mail>

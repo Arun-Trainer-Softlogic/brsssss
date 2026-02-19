@@ -1,0 +1,138 @@
+# version: "3.9"
+
+services:
+  # MongoDB Services for SAP-FI
+  mongo_sapfi_db:
+    container_name: mongo_sapfi_db
+    image: mongo:6.0.1
+    restart: always
+    env_file:
+      - "./aconfig/config.production.env"
+    ports:
+      - "5311:27017"
+    volumes:
+      - mongodb-sapfi-data:/data/db
+    networks:
+      - sap_fi_network
+
+  # Node-SAP-FI API Service
+  api_sap_fidoc:
+    # container_name:: Do-Not Need
+    build: ./api_sap_fidoc
+    image: api_sap_fidoc
+    restart: always
+    # ports:: Do-Not Need
+    #   - "5845:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 1G
+    env_file:
+      - "./aconfig/config.production.env"
+    environment:
+      - PORT=3000
+      - TOKEN=gltoken
+      - TOKENEXTEND=300000
+      - ASHOST=ud3-sv-sapec3.matw.matthewsintl.com
+      - SYSNR=00
+      - CLIENT=300
+      - LANGU=EN
+      - SYSTEM=NP1
+      - RFC_TRACE=0
+      - KAFKA_BROKER=dc6-sv-c3mft02.amer.schawk.com:9092,dc6-sv-c3mft02.amer.schawk.com:9093
+      - KAFKA_CLIENTID=SAP.GL.POSTING
+      - KAFKA_GROUPID=SAP-GL-POST
+      - KAFKA_TOPIC_RECEIVED=GL.SAPGL.RECEIVED
+      - KAFKA_TOPIC_SAP_RESPONSE=GL.SAPGL.RESPONSE
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - MONGODB_HOST=mongo_sapfi_db:27017
+      - JWTLINK=http://c3mft01lp.amer.schawk.com:8082/auth/.well-known/jwks.json
+      - JWTLOGIN=http://c3mft01lp.amer.schawk.com:8082/auth/login
+      - PIPO_EMAIL_URL=http://ud3-sv-sappo1.matw.matthewsintl.com:50000/AdvantcoRESTAdapter/RESTServlet/api/v1/restsendemail
+    depends_on:
+      - mongo_sapfi_db
+    networks:
+      - sap_fi_network
+
+  # Scaling up of Node-SAP API Service
+  api_sap_fidoc_lb:
+    container_name: api_sap_fidoc_lb
+    build: ./api_sap_fidoc_lb
+    image: api_sap_fidoc_lb
+    restart: always
+    ports:
+      - "5310:3000"
+    environment:
+      - NGINX_PORT=3000
+      - APILOADBALANCE=http://api_sap_fidoc:3000
+    depends_on:
+      - mongo_sapfi_db
+      - api_sap_fidoc
+    networks:
+      - sap_fi_network
+
+  ui5_sap_fidoc:
+    container_name: ui5_sap_fidoc
+    build: ./ui5_sap_fidoc
+    image: ui5_sap_fidoc
+    restart: always
+    ports:
+      - "5312:3000"
+    environment:
+      - SERVERPORT=3000
+      - BACKEND=http://api_sap_fidoc_lb:3000
+    depends_on:
+      - mongo_sapfi_db
+      - api_sap_fidoc
+      - api_sap_fidoc_lb
+    networks:
+      - sap_fi_network
+    
+  # Source (PIPO): Nemayoo, Sentric
+  # Versapay Mapping
+  # SAP FI Docu RETURN Response
+  # Data Consumer and Posting to SAP-API
+  consumer_fidoc:
+    container_name: consumer_fidoc
+    build: ./consumer_fidoc
+    image: consumer_fidoc
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 1G
+    env_file:
+      - "./aconfig/config.production.env"
+    environment:
+      - KAFKA_BROKER=dc6-sv-c3mft02.amer.schawk.com:9092,dc6-sv-c3mft02.amer.schawk.com:9093
+      - KAFKA_CLIENTID=SAP.GL.POSTING
+      - KAFKA_GROUPID=SAP-GL-POST
+      - KAFKA_TOPIC_RECEIVED=GL.SAPGL.RECEIVED
+      - KAFKA_TOPIC_SAP_RESPONSE=GL.SAPGL.RESPONSE
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+      - MONGODB_HOST=mongo_sapfi_db:27017
+      - MS_BASE_URL=http://api_sap_fidoc_lb:3000
+      - MS_PATH_PAYLOAD=/AccountDocument/Posting/Payload
+      - MS_PATH_KAFKAPOSTING=/AccountDocument/KafkaPosting
+      - MS_PATH_POSTINGSTATUS=/AccountDocument/PostingStatus
+    depends_on:
+      - mongo_sapfi_db
+      - api_sap_fidoc
+      - api_sap_fidoc_lb
+    networks:
+      - sap_fi_network
+
+networks:
+  sap_fi_network:
+
+
+volumes:
+  mongodb-sapfi-data:

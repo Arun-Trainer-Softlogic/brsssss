@@ -1,0 +1,9 @@
+aconfig
+**/dist
+**/node_modules
+# **/noderfc
+**/.env
+**/dev_rfc.trc
+**/dev_rfc.log
+**/npm-debug.log
+**/_noderfc.log

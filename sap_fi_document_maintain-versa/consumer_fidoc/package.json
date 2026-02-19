@@ -1,0 +1,23 @@
+{
+  "name": "consumer_fidoc",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "Debabrata Sarkar",
+  "license": "ISC",
+  "description": "Consume Data from Kafka Topic",
+  "devDependencies": {
+    "dotenv": "^16.4.5",
+    "nodemon": "^3.1.7"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "kafkajs": "^2.2.4",
+    "mongoose": "^8.6.3"
+  }
+}
